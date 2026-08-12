@@ -131,7 +131,14 @@ internal static class EnvironmentConfigurationTracerHelper
         public static TracerProviderBuilder AddAspNetInstrumentation(TracerProviderBuilder builder, PluginManager pluginManager, LazyInstrumentationLoader lazyInstrumentationLoader, TracerSettings tracerSettings)
         {
             DelayedInitialization.Traces.AddAspNet(lazyInstrumentationLoader, pluginManager, tracerSettings);
-            return builder.AddSource(OpenTelemetry.Instrumentation.AspNet.TelemetryHttpModule.AspNetSourceName);
+            return builder
+                .AddSource(OpenTelemetry.Instrumentation.AspNet.TelemetryHttpModule.AspNetSourceName)
+
+                // vunet CLV: AspNetPipelineHttpModule's pipeline-stage spans use their own
+                // ActivitySource, separate from TelemetryHttpModule's root-request source above.
+                // Without registering it here too, StartActivity on that source returns null
+                // (no listener) and no code-level-visibility spans would ever be exported.
+                .AddSource("OpenTelemetry.AutoInstrumentation.AspNetPipeline");
         }
 #endif
 
@@ -140,6 +147,12 @@ internal static class EnvironmentConfigurationTracerHelper
         public static TracerProviderBuilder AddAspNetCoreInstrumentation(TracerProviderBuilder builder, PluginManager pluginManager, LazyInstrumentationLoader lazyInstrumentationLoader, TracerSettings tracerSettings)
         {
             DelayedInitialization.Traces.AddAspNetCore(lazyInstrumentationLoader, pluginManager, tracerSettings);
+
+            // vunet CLV: AspNetCorePipelineStartupFilter / AspNetCoreEndpointExecutionFilter use
+            // their own ActivitySource, separate from the root-request sources below. Without
+            // registering it here too, StartActivity on that source returns null (no listener)
+            // and no code-level-visibility spans would ever be exported.
+            builder.AddSource("OpenTelemetry.AutoInstrumentation.AspNetCorePipeline");
 
             if (Environment.Version.Major == 6)
             {

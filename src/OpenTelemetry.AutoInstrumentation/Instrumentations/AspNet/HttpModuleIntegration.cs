@@ -47,6 +47,10 @@ public static class HttpModuleIntegration
         try
         {
             HttpApplication.RegisterModule(typeof(TelemetryHttpModule));
+
+            // Registered after TelemetryHttpModule so its EndRequest handler (and the resulting
+            // Activity.Current) is still in place when our own pipeline-stage handlers run.
+            HttpApplication.RegisterModule(typeof(AspNetPipelineHttpModule));
         }
         catch
         {
