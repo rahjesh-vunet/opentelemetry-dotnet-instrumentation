@@ -4,6 +4,7 @@
 #if NET6_0_OR_GREATER
 using System.Diagnostics;
 #endif
+using OpenTelemetry.AutoInstrumentation.ClvCapture;
 using OpenTelemetry.AutoInstrumentation.Configurations;
 #if NET6_0_OR_GREATER
 using OpenTelemetry.AutoInstrumentation.ContinuousProfiler;
@@ -176,6 +177,16 @@ internal static class Instrumentation
         if (GeneralSettings.Value.ProfilerEnabled)
         {
             RegisterBytecodeInstrumentations(InstrumentationDefinitions.GetAllDefinitions());
+
+            // vunet CLV: method argument and return value capture.
+            try
+            {
+                RegisterBytecodeInstrumentations(ClvCaptureDefinitions.GetDefinitions());
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Exception occurred while registering CLV capture instrumentations.");
+            }
 
             try
             {
